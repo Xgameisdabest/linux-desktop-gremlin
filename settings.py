@@ -1,9 +1,22 @@
 
+from enum import Enum, auto
 import os
 import datetime
 from typing import Dict
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+
+
+class State(Enum):
+    INTRO = auto()
+    IDLE = auto()
+    HOVER = auto()
+    WALKING = auto()
+    DRAGGING = auto()
+    CLICK = auto()
+    PAT = auto()
+    SLEEPING = auto()
+    OUTRO = auto()
 
 
 class Settings:
@@ -15,7 +28,6 @@ class Settings:
     FollowRadius = 150.0
     FrameWidth = 200
     FrameHeight = 200
-    Ammo = 5
     LastPlayed: Dict[str, datetime.datetime] = {}
     MoveSpeed = 5
 
@@ -43,15 +55,10 @@ class FrameCounts:
     Dance = 0
     Hover = 0
     Sleep = 0
-    LeftFire = 0
-    RightFire = 0
-    Reload = 0
     Pat = 0
 
 
 class CurrentFrames:
-    LeftFire = 0
-    RightFire = 0
     Intro = 0
     Idle = 0
     Outro = 0
@@ -65,27 +72,4 @@ class CurrentFrames:
     Dance = 0
     Hover = 0
     Sleep = 0
-    Reload = 0
     Pat = 0
-
-
-class AnimationStates:
-    IsIntro = True
-    ForwardAnimation = True
-    IsRandom = False
-    IsHover = False
-    IsIdle = True
-    IsWalking = False
-    IsDragging = False
-    IsWalkIdle = False
-    IsClick = False
-    IsSleeping = False
-    IsFiring_Left = False
-    IsFiring_Right = False
-    IsReload = False
-    IsPat = False
-
-    IsWalkingUp = False
-    IsWalkingDown = False
-    IsWalkingLeft = False
-    IsWalkingRight = False

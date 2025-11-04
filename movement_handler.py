@@ -24,29 +24,22 @@ class MovementHandler:
             vx = -self.v if self.a else self.v
         return vx, vy
 
-    def transferAnimationState(self, a: settings.AnimationStates) -> None:
+    def is_moving(self) -> bool:
+        """
+        Returns True if either vertical or horizontal movement is occurring.
+        """
+        return (self.w ^ self.s) or (self.a ^ self.d)
+
+    def get_animation_direction(self) -> str | None:
         """
         Unlike `getVelocity` where the movement can be diagonal, there's no diagonal
         animation. So we prioritize vertical movement over horizontal movement.
         """
-        a.IsWalkingUp = a.IsWalkingDown = a.IsWalkingLeft = a.IsWalkingRight = False
-
         if self.w ^ self.s:
-            if self.w:
-                a.IsWalkingUp = True
-            else:
-                a.IsWalkingDown = True
+            return "up" if self.w else "down"
         elif self.a ^ self.d:
-            if self.a:
-                a.IsWalkingLeft = True
-            else:
-                a.IsWalkingRight = True
-
-        if a.IsWalkingUp or a.IsWalkingDown or a.IsWalkingLeft or a.IsWalkingRight:
-            a.IsWalking = True
-            a.IsHover = a.IsPat = a.IsClick = a.IsSleeping = a.IsIntro = False
-        else:
-            a.IsWalking = False
+            return "left" if self.a else "right"
+        return None
 
     # --- @! event recorders -------------------------------------------------------------
 
@@ -61,8 +54,6 @@ class MovementHandler:
                 self.s = True
             case Qt.Key.Key_D:
                 self.d = True
-            case _:
-                pass
 
     def recordKeyRelease(self, event):
         key = event.key()
@@ -75,8 +66,6 @@ class MovementHandler:
                 self.s = False
             case Qt.Key.Key_D:
                 self.d = False
-            case _:
-                pass
 
     def recordMouseLeave(self):
         self.w = False

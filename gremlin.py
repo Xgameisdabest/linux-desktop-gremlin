@@ -12,6 +12,7 @@ from PySide6.QtMultimedia import QSoundEffect
 import settings
 import sprite_manager
 from movement_handler import MovementHandler
+from settings import State
 
 
 class GremlinWindow(QWidget):
@@ -21,9 +22,9 @@ class GremlinWindow(QWidget):
 
         # --- @! Window Setup ------------------------------------------------------------
         self.setWindowFlags(
-            Qt.WindowType.FramelessWindowHint |     # No window decorations
-            Qt.WindowType.WindowStaysOnTopHint |    # Always on top
-            Qt.WindowType.Tool                      # Don't show in taskbar
+            Qt.WindowType.FramelessWindowHint |
+            Qt.WindowType.WindowStaysOnTopHint |
+            Qt.WindowType.Tool
         )
         self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground)
         self.setFocusPolicy(Qt.FocusPolicy.StrongFocus)
@@ -48,7 +49,7 @@ class GremlinWindow(QWidget):
         self.right_hotspot.mousePressEvent = self.right_hotspot_click
 
         self.top_hotspot = QWidget(self)
-        self.top_hotspot.setGeometry(160, 0, 135, 50)  # (455-135)/2 = 160
+        self.top_hotspot.setGeometry(160, 0, 135, 50)
         self.top_hotspot.mousePressEvent = self.top_hotspot_click
 
         # --- @! Sound Player ------------------------------------------------------------
@@ -64,15 +65,57 @@ class GremlinWindow(QWidget):
 
         self.close_timer = None
 
-        # --- @! Other tools -------------------------------------------------------------
+        # --- @! State Management --------------------------------------------------------
         self.movement_handler = MovementHandler()
+        self.current_state = State.INTRO
+        self.drag_pos = None
 
         # --- @! Start -------------------------------------------------------------------
         self.setup_tray_icon()
         self.play_sound("intro.wav")
         self.master_timer.start(1000 // settings.Settings.FrameRate)
         self.idle_timer.start(120 * 1000)
-        self.drag_pos = None
+
+    # --- @! State Machine Core -------------------------------------------------------
+
+    def set_state(self, new_state: State):
+        """ Handles playing entry sounds and resetting animation frames. """
+        if self.current_state == new_state:
+            return
+
+        # handles sound effects on state transitions
+        if new_state == State.DRAGGING:
+            self.play_sound("grab.wav")
+        elif new_state == State.WALKING and self.current_state != State.WALKING:
+            self.play_sound("run.wav")
+        elif new_state == State.CLICK:
+            self.play_sound("mambo.wav")
+        elif new_state == State.PAT:
+            self.play_sound("grab.wav")
+
+        self.current_state = new_state
+        self.reset_current_frames(new_state)
+
+    def reset_current_frames(self, state: State):
+        """ Resets the frame counter for the new state. """
+        c = settings.CurrentFrames
+        match state:
+            case State.INTRO:
+                c.Intro = 0
+            case State.IDLE:
+                c.Idle = 0
+            case State.HOVER:
+                c.Hover = 0
+            case State.WALKING:
+                c.WalkUp = c.WalkDown = c.WalkLeft = c.WalkRight = 0
+            case State.DRAGGING:
+                c.Grab = 0
+            case State.CLICK:
+                c.Click = 0
+            case State.PAT:
+                c.Pat = 0
+            case State.SLEEPING:
+                c.Sleep = 0
 
     # --- @! Animations ------------------------------------------------------------------
 
@@ -97,111 +140,81 @@ class GremlinWindow(QWidget):
         return (current_frame + 1) % frame_count
 
     def animation_tick(self):
-        """
-        This method is almost ported 1:1 from KurtVelasco's InitializeAnimations.
-        I believe he thinks the original version trash. I think this port is trash too.
-        """
-        s = settings.Settings
-        f = settings.FrameCounts
+        """ Plays the animation for the current state. """
         c = settings.CurrentFrames
-        a = settings.AnimationStates
+        f = settings.FrameCounts
 
-        if a.IsSleeping and not a.IsIntro:
-            c.Sleep = self.play_animation(
-                sprite_manager.get("sleep"), c.Sleep, f.Sleep)
+        match self.current_state:
+            case State.INTRO:
+                c.Intro = self.play_animation(
+                    sprite_manager.get("intro"), c.Intro, f.Intro)
+                if c.Intro == 0:
+                    self.set_state(State.IDLE)
 
-        if a.IsIntro:
-            c.Intro = self.play_animation(
-                sprite_manager.get("intro"), c.Intro, f.Intro)
-            if c.Intro == 0:
-                a.IsIntro = False
+            case State.IDLE:
+                c.Idle = self.play_animation(
+                    sprite_manager.get("idle"), c.Idle, f.Idle)
 
-        if a.IsDragging:
-            if c.Grab == 0:
-                self.play_sound("grab.wav")
-            c.Grab = self.play_animation(
-                sprite_manager.get("grab"), c.Grab, f.Grab)
-            a.IsIntro = a.IsClick = a.IsSleeping = False
+            case State.HOVER:
+                c.Hover = self.play_animation(
+                    sprite_manager.get("hover"), c.Hover, f.Hover)
 
-        if a.IsPat:
-            if c.Pat == 0:
-                self.play_sound("grab.wav")
-            c.Pat = self.play_animation(
-                sprite_manager.get("pat"), c.Pat, f.Pat)
-            a.IsIntro = a.IsClick = a.IsSleeping = False
-            if c.Pat == 0:
-                a.IsPat = False
+            case State.WALKING:
+                self.handle_walking_animation_and_movement()
 
-        if a.IsWalking and not a.IsDragging and not a.IsPat and not a.IsSleeping:
-            current_pos = self.pos()
-            move_x = current_pos.x()
-            move_y = current_pos.y()
+            case State.DRAGGING:
+                c.Grab = self.play_animation(
+                    sprite_manager.get("grab"), c.Grab, f.Grab)
 
-            if a.IsWalkingLeft:
-                c.WalkLeft = self.play_animation(
-                    sprite_manager.get("left"), c.WalkLeft, f.Left)
-            elif a.IsWalkingRight:
-                c.WalkRight = self.play_animation(
-                    sprite_manager.get("right"), c.WalkRight, f.Right)
-            elif a.IsWalkingUp:
-                c.WalkUp = self.play_animation(
-                    sprite_manager.get("backward"), c.WalkUp, f.Up)
-            elif a.IsWalkingDown:
-                c.WalkDown = self.play_animation(
-                    sprite_manager.get("forward"), c.WalkDown, f.Down)
+            case State.PAT:
+                c.Pat = self.play_animation(
+                    sprite_manager.get("pat"), c.Pat, f.Pat)
+                if c.Pat == 0:
+                    # transition to Hover or Idle when "pat" animation finishes
+                    self.set_state(
+                        State.HOVER if self.underMouse() else State.IDLE)
 
-            # apply the new position to the window
-            dx, dy = self.movement_handler.getVelocity()
-            self.move(move_x + dx, move_y + dy)
+            case State.CLICK:
+                c.Click = self.play_animation(
+                    sprite_manager.get("click"), c.Click, f.Click)
+                if c.Click == 0:
+                    # transition to Hover or Idle when "click" animation finishes
+                    self.set_state(
+                        State.HOVER if self.underMouse() else State.IDLE)
 
-        if a.IsHover and not a.IsDragging and not a.IsSleeping and not a.IsWalking:
-            c.Hover = self.play_animation(
-                sprite_manager.get("hover"), c.Hover, f.Hover)
-            a.IsPat = False
+            case State.SLEEPING:
+                c.Sleep = self.play_animation(
+                    sprite_manager.get("sleep"), c.Sleep, f.Sleep)
 
-        if s.Ammo <= 0:
-            if c.Reload == 0:
-                self.play_sound("reload.wav")
-            a.IsFiring_Left = a.IsFiring_Right = False
-            c.Reload = self.play_animation(
-                sprite_manager.get("reload"), c.Reload, f.Reload)
-            if c.Reload == 0:
-                s.Ammo = 5
+            case State.OUTRO:
+                # this state is handled by outro_tick, but we stop master_timer
+                # so this case is just a failsafe.
+                pass
 
-        if a.IsClick:
-            c.Click = self.play_animation(
-                sprite_manager.get("click"), c.Click, f.Click)
-            a.IsIntro = a.IsSleeping = False
-            if c.Click == 0:
-                a.IsClick = False
+    def handle_walking_animation_and_movement(self):
+        """ Helper function to keep animation_tick clean. """
+        c = settings.CurrentFrames
+        f = settings.FrameCounts
 
-        # --- @! The main "Idle" state ---------------------------------------------------
-        if (not a.IsSleeping and not a.IsIntro and not a.IsDragging and
-            not a.IsWalkIdle and not a.IsClick and not a.IsHover and
-            not a.IsFiring_Left and not a.IsFiring_Right and
-                s.Ammo > 0 and not a.IsPat and not a.IsWalking):
+        direction = self.movement_handler.get_animation_direction()
 
-            c.Idle = self.play_animation(
-                sprite_manager.get("idle"), c.Idle, f.Idle)
+        if direction == "left":
+            c.WalkLeft = self.play_animation(
+                sprite_manager.get("left"), c.WalkLeft, f.Left)
+        elif direction == "right":
+            c.WalkRight = self.play_animation(
+                sprite_manager.get("right"), c.WalkRight, f.Right)
+        elif direction == "up":
+            c.WalkUp = self.play_animation(
+                sprite_manager.get("backward"), c.WalkUp, f.Up)
+        elif direction == "down":
+            c.WalkDown = self.play_animation(
+                sprite_manager.get("forward"), c.WalkDown, f.Down)
 
-        if a.IsFiring_Left and s.Ammo > 0:
-            if c.LeftFire == 0:
-                self.play_sound("fire.wav")
-            c.LeftFire = self.play_animation(
-                sprite_manager.get("firel"), c.LeftFire, f.LeftFire)
-            if c.LeftFire == 0:
-                a.IsFiring_Left = False
-                s.Ammo -= 1
-
-        if a.IsFiring_Right and s.Ammo > 0:
-            if c.RightFire == 0:
-                self.play_sound("fire.wav")
-            c.RightFire = self.play_animation(
-                sprite_manager.get("firer"), c.RightFire, f.RightFire
-            )
-            if c.RightFire == 0:
-                a.IsFiring_Right = False
-                s.Ammo -= 1
+        # apply the new position to the window
+        dx, dy = self.movement_handler.getVelocity()
+        if dx != 0 or dy != 0:
+            self.move(self.pos().x() + dx, self.pos().y() + dy)
 
     def play_sound(self, file_name, delay_seconds=0):
         """ Plays a sound, respecting the LastPlayed delay. """
@@ -286,109 +299,91 @@ class GremlinWindow(QWidget):
     # --- @! Event Handlers (Mouse) ------------------------------------------------------
 
     def reset_idle_timer(self):
+        """ Resets the idle timer and wakes the gremlin up if sleeping. """
         self.idle_timer.start(120 * 1000)
-        settings.AnimationStates.IsSleeping = False
+        if self.current_state == State.SLEEPING:
+            self.set_state(State.IDLE)
 
     def idle_timer_tick(self):
-        if not settings.AnimationStates.IsSleeping:
-            settings.AnimationStates.IsSleeping = True
+        """ When timer fires, go to sleep. """
+        if self.current_state in [State.IDLE, State.HOVER]:
+            self.set_state(State.SLEEPING)
 
     def mousePressEvent(self, event):
-        """ Handles clicks on the main window (Grid in XAML). """
         self.reset_idle_timer()
         if event.button() == Qt.MouseButton.LeftButton:
-            settings.AnimationStates.IsDragging = True
-            settings.CurrentFrames.Grab = 0
-            self.drag_pos = event.globalPosition().toPoint() - self.pos()
-
+            if self.current_state not in [State.DRAGGING, State.PAT, State.CLICK]:
+                self.set_state(State.DRAGGING)
+                self.drag_pos = event.globalPosition().toPoint() - self.pos()
         elif event.button() == Qt.MouseButton.RightButton:
-            s = settings
-            s.CurrentFrames.Click = 0
-            s.AnimationStates.IsClick = not s.AnimationStates.IsClick
-            if s.AnimationStates.IsClick:
-                self.play_sound("mambo.wav")
+            if self.current_state not in [State.DRAGGING, State.PAT, State.CLICK]:
+                self.set_state(State.CLICK)
 
     def mouseMoveEvent(self, event):
-        """ Handles dragging the window. """
-        if (settings.AnimationStates.IsDragging and
+        if (self.current_state == State.DRAGGING and
                 event.buttons() == Qt.MouseButton.LeftButton):
             self.move(event.globalPosition().toPoint() - self.drag_pos)
 
     def mouseReleaseEvent(self, event):
-        """ Handles dropping the window. """
         if event.button() == Qt.MouseButton.LeftButton:
-            settings.AnimationStates.IsDragging = False
-            settings.CurrentFrames.Grab = 0
-            self.play_sound("run.wav")
+            if self.current_state == State.DRAGGING:
+                # transition to Hover or Idle when dropped
+                self.set_state(State.HOVER if self.underMouse()
+                               else State.IDLE)
+                self.play_sound("run.wav")
 
     def keyPressEvent(self, event):
-        """ Handles keyboard controls when window is focused (on hover). """
         if event.isAutoRepeat():
             return
 
-        # only start walking if not in a conflicting state
-        a = settings.AnimationStates
-        if a.IsDragging or a.IsPat or a.IsSleeping or a.IsClick:
+        # don't allow walking while in these blocking states
+        if self.current_state in [State.DRAGGING, State.PAT, State.CLICK, State.SLEEPING]:
             return
 
-        prev_walking = a.IsWalking
         self.movement_handler.recordKeyPress(event)
-        self.movement_handler.transferAnimationState(a)
 
-        if a.IsWalking:
-            if not prev_walking:
-                self.play_sound("run.wav")
+        if self.movement_handler.is_moving():
+            self.set_state(State.WALKING)
             self.reset_idle_timer()
 
     def keyReleaseEvent(self, event):
-        """ Handles key releases to stop walking. """
         if event.isAutoRepeat():
             return
 
-        a = settings.AnimationStates
         self.movement_handler.recordKeyRelease(event)
-        self.movement_handler.transferAnimationState(a)
 
-        if not a.IsWalking:
-            c = settings.CurrentFrames
-            c.WalkUp = c.WalkDown = c.WalkLeft = c.WalkRight = 0
-            # re-enable hover animation if mouse is still over
-            if self.underMouse():
-                a.IsHover = True
+        # if we were walking and are no longer moving...
+        if self.current_state == State.WALKING and not self.movement_handler.is_moving():
+            # ...transition to hover or idle.
+            self.set_state(State.HOVER if self.underMouse() else State.IDLE)
 
     def enterEvent(self, event):
-        """ Handles mouse enter event. """
         self.setFocus()
-        a = settings.AnimationStates
-        if not a.IsIntro and not a.IsWalking:
-            a.IsHover = True
-        if not a.IsIntro and not a.IsWalking and not a.IsSleeping and not a.IsClick:
+        self.reset_idle_timer()
+        if self.current_state == State.IDLE:
+            self.set_state(State.HOVER)
+
+        if self.current_state not in [State.WALKING, State.SLEEPING, State.CLICK, State.DRAGGING]:
             self.play_sound("hover.wav", 3)
 
     def leaveEvent(self, event):
-        """ Handles mouse leave event. """
         self.clearFocus()
-        a = settings.AnimationStates
-        if not settings.AnimationStates.IsIntro:
-            a.IsHover = False
-            settings.CurrentFrames.Hover = 0
-        self.movement_handler.recordMouseLeave()
-        self.movement_handler.transferAnimationState(a)
+        self.movement_handler.recordMouseLeave()    # stop all movement
+
+        # if we were hovering or walking, transition to idle.
+        if self.current_state in [State.HOVER, State.WALKING]:
+            self.set_state(State.IDLE)
 
     # --- @! Hotspot Click Handlers ------------------------------------------------------
 
-    def left_hotspot_click(self, event):
-        if event.button() == Qt.MouseButton.LeftButton:
-            self.reset_idle_timer()
-            settings.AnimationStates.IsFiring_Left = True
-
-    def right_hotspot_click(self, event):
-        if event.button() == Qt.MouseButton.LeftButton:
-            self.reset_idle_timer()
-            settings.AnimationStates.IsFiring_Right = True
-
     def top_hotspot_click(self, event):
         if event.button() == Qt.MouseButton.LeftButton:
-            self.reset_idle_timer()
-            settings.CurrentFrames.Pat = 0
-            settings.AnimationStates.IsPat = True
+            if self.current_state not in [State.DRAGGING, State.CLICK, State.SLEEPING]:
+                self.reset_idle_timer()
+                self.set_state(State.PAT)
+
+    def left_hotspot_click(self, event):
+        pass  # firing removed
+
+    def right_hotspot_click(self, event):
+        pass  # firing removed
