@@ -35,10 +35,12 @@ You can install dependencies either in a Python virtual environment or using you
   There's nothing that can go wrong about this, except for the disk space.
 
   ```sh
-  # Install uv, a fast Python package manager
-  curl -LsSf https://astral.sh/uv/install.sh | sh
+  # clone repository
+  git clone https://github.com/iluvgirlswithglasses/linux-desktop-gremlin
+  cd linux-desktop-gremlin
 
-  # Install dependencies into the virtual environment
+  # install uv -- a fast Python package manager -- then sync packages
+  curl -LsSf https://astral.sh/uv/install.sh | sh
   uv sync
   ```
 </details>
