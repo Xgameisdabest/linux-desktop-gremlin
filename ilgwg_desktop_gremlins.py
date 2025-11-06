@@ -10,7 +10,7 @@ if __name__ == "__main__":
 
     # please load configuration files before creating the main window
     try:
-        state = (config_manager.load_master_config() and
+        state = (config_manager.load_master_config(sys.argv) and
                  config_manager.load_sprite_map() and
                  config_manager.load_frame_count() and
                  config_manager.load_emote_config())

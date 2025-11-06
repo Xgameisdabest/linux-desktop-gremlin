@@ -23,13 +23,22 @@ def load(path, instance) -> bool:
     return True
 
 
-def load_master_config() -> bool:
-    """ Loads the main config.json file. """
+def load_master_config(argv) -> bool:
+    """ Loads the master config from `./config.json` and from command line args. """
+    # load from file first
     path = os.path.join(settings.BASE_DIR, "config.json")
     if not os.path.exists(path):
         print(f"Warning: Master config file not found at {path}")
         return False
-    return load(path, settings.Settings)
+    if not load(path, settings.Settings):
+        return False
+
+    # override with command line args
+    if len(argv) > 1:
+        charname = argv[1]
+        settings.Settings.StartingChar = charname
+
+    return True
 
 
 def load_sprite_map() -> bool:

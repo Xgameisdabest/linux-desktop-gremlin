@@ -104,16 +104,36 @@ Execute the script that matches your setup, then a gremlin shall be spawned:
 
 ```sh
 ./run-x11.sh            # for running on X11
-./run-wayland.sh        # for running on Hyprland
+./run-xwayland.sh       # for running on Hyprland
 ./run-uv-x11.sh         # for running with virtual environment on X11
-./run-uv-wayland.sh     # for running with virtual environment on Hyprland
+./run-uv-xwayland.sh    # for running with virtual environment on Hyprland
 
 # You can now close the terminal which you executed these scripts with.
 # The gremlin won't be despawned unless you use your hotkeys for closing window,
 # like alt+f4 or mod+q.
 ```
 
-# 🔧 Customize your Gremlins!
+# 🔧 Customizations!
+
+## How to Choose Your Gremlin
+
+Wanna checkout other gremlins than Matikanetannhauser?
+
+Firstly, you may check for available gremlins in the `./spritesheet` directory. For example:
+
+```
+spritesheet/
+├── mambo
+└── rice-shower
+```
+
+Then, you can pass a gremlin's name as an argument to the run script, and she shall be spawned. For example:
+
+```sh
+./run-uv-xwayland.sh rice-shower
+```
+
+You can also specify your default gremlin in `./config.json`.
 
 ## How to Make Your Gremlin Annoy You (Occasionally!)
 
