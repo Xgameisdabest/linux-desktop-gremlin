@@ -25,24 +25,16 @@ main_menu() {
 
 	# check which session to launch (use uv)
 	if [[ $XDG_SESSION_TYPE == "wayland" ]]; then
-		#check whether if they want to use uv or not
-		pick_uv=$(echo -e "Uv\nNon-uv\nBack" | rofi -dmenu)
-		if [[ $pick_uv == "Uv" ]]; then
+		if command -v uv >/dev/null 2>&1; then
 			"$SCRIPT_DIR/run-uv-xwayland.sh" "$pick"
-		elif [[ $pick_uv == "Non-uv" ]]; then
+		else
 			"$SCRIPT_DIR/run-xwayland.sh" "$pick"
-		elif [[ $pick_uv == "Back" ]]; then
-			main_menu
 		fi
 	elif [[ $XDG_SESSION_TYPE == "x11" ]]; then
-		#check whether if they want to use uv or not
-		pick_uv=$(echo -e "Uv\nNon-uv\nBack" | rofi -dmenu)
-		if [[ $pick_uv == "Uv" ]]; then
+		if command -v uv >/dev/null 2>&1; then
 			"$SCRIPT_DIR/run-uv-x11.sh" "$pick"
-		elif [[ $pick_uv == "Non-uv" ]]; then
+		else
 			"$SCRIPT_DIR/run-x11.sh" "$pick"
-		elif [[ $pick_uv == "Back" ]]; then
-			main_menu
 		fi
 	fi
 }
