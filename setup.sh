@@ -76,7 +76,7 @@ case "$choice" in
 
 	mkdir -p "$INSTALL_PATH" "$BIN_PATH" "$(dirname "$DESKTOP_FILE")"
 
-	ln -sf "$INSTALL_PATH/gremlin-picker.sh" "$LINK_PATH"
+	ln -s "$INSTALL_PATH/gremlin-picker.sh" "$LINK_PATH"
 	chmod +x "$LINK_PATH"
 
 	cat >"$DESKTOP_FILE" <<EOF
@@ -119,7 +119,7 @@ EOF
 	echo "Reinstalling latest version..."
 	mkdir -p "$INSTALL_PATH" "$BIN_PATH" "$(dirname "$DESKTOP_FILE")"
 
-	ln -sf "$INSTALL_PATH/gremlin-picker.sh" "$LINK_PATH"
+	ln -s "$INSTALL_PATH/gremlin-picker.sh" "$LINK_PATH"
 	chmod +x "$LINK_PATH"
 
 	cat >"$DESKTOP_FILE" <<EOF
