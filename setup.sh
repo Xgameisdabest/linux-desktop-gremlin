@@ -34,8 +34,6 @@ else
 	echo "Please install pyside6/pyside6-tools and qt6-base using your package manager."
 fi
 
-set -e # Exit immediately if a command exits with a non-zero status
-
 echo "=============================="
 echo " Linux Desktop Gremlin Installer"
 echo "=============================="
