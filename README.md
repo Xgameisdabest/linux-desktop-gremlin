@@ -11,9 +11,7 @@ https://github.com/user-attachments/assets/eeb75510-9725-4f3a-a259-0959ddc22603
 - Interactive controls:
     - **Drag & Drop:** 🖱️ Click and drag your gremlins to move 'em.
     - **Walk**: ⌨️ ~Cursor-following does not work in Wayland 🥺🥺🥺~. So hover your mouse over the gremlins, then use W/A/S/D to make 'em skedaddle 💨💨.
-    - **Secret Move:** 💃 Right-click to see what happens. (It's Mambo time 😎😎)
-    - **Headpats:** 🖐️ You can pat their head by clicking the top hotspot. (Still looking for a Mambo patting animation, send help.)
-- The gremlins will make some ✨noises✨ when you interact with them 🥰🥰 Show 'em some love!
+    - **Secret Move:** Right-click to see what happens 😎. Pro tip: *where* you right-click matters! A headpat, a poke, (or something even more special) might play!
 - Also, if you leave the gremlins lonely for so long, they will occasionally make more ✨noises✨ to annoy you 😈😈. Think of it as *"1 hour of silence occasionally broken up by Mambo"*.
 
 > Note 1: The *"1 hour of silence occasionally broken up by Mambo"* feature can be turned off (if you are a chicken 🐔🐔). See the "Customize your Gremlins!" section below.
