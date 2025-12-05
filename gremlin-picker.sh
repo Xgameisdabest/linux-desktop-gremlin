@@ -23,20 +23,7 @@ main_menu() {
 		exit 0
 	fi
 
-	# check which session to launch (use uv)
-	if [[ $XDG_SESSION_TYPE == "wayland" ]]; then
-		if command -v uv >/dev/null 2>&1; then
-			"$SCRIPT_DIR/run-uv-xwayland.sh" "$pick"
-		else
-			"$SCRIPT_DIR/run-xwayland.sh" "$pick"
-		fi
-	elif [[ $XDG_SESSION_TYPE == "x11" ]]; then
-		if command -v uv >/dev/null 2>&1; then
-			"$SCRIPT_DIR/run-uv-x11.sh" "$pick"
-		else
-			"$SCRIPT_DIR/run-x11.sh" "$pick"
-		fi
-	fi
+	"$SCRIPT_DIR/run.sh" "$pick"
 }
 
 main_menu
