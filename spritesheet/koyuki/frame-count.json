@@ -1,8 +1,8 @@
 {
-	"Poke": 0,
 	"Idle": 88,
 	"Hover": 84,
 	"Click": 88,
+	"Poke": 0,
 	"Sleep": 84,
 	"Intro": 181,
 	"Outro": 65,
@@ -18,7 +18,7 @@
 	"WalkIdle": 84,
 	"Pat": 181,
 	"Emote": 56,
-	"LeftAction": 0,
-	"RightAction": 0,
+	"LeftAction": 56,
+	"RightAction": 56,
 	"Reload": 0
 }
