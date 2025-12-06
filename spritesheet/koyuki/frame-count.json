@@ -1,8 +1,7 @@
 {
 	"Idle": 88,
 	"Hover": 84,
-	"Click": 88,
-	"Poke": 0,
+	"Poke": 88,
 	"Sleep": 84,
 	"Intro": 181,
 	"Outro": 65,
